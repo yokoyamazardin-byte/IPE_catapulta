@@ -17,14 +17,14 @@ SoftwareSerial espSerial(2, 3); // RX=2, TX=3
 // Controle de energia do ESP8266
 const int espPowerPin = 12;
 
-// Variável para armazenar a distância recebida
-float distancia = 0.0;
-
+// Variáveis
+float distancia = 0.00;
+float rot=0.00;
 void setup() {
   Serial.begin(9600);
   espSerial.begin(9600);
 
-  // Configura velocidade dos motores
+  // velocidade dos motores
   motor1.setSpeed(10);
   motor2.setSpeed(10);
 
@@ -43,18 +43,24 @@ void loop() {
     Serial.println(" metros");
 
     // Usa a função para aplicar a rotação no motor 1
-    rotacaoPorDistancia(distancia);
+    rot=rotacaoPorDistancia(distancia);
 
-    // Motor2 faz uma volta completa
-    motor2.step(stepsPerRevolution);
+    
+    
 
     // Desliga o ESP8266 para economizar energia
     digitalWrite(espPowerPin, LOW);
     Serial.println("ESP8266 desligado.");
 
     // Trava o loop para não religar
-    while (true) {
-      // Outras tarefas podem ser feitas aqui sem reativar o ESP
+    while (true) { 
+     // Usa a função para aplicar a rotação no motor 1
+     motor1.step(rot);
+
+      // Motor2 faz uma volta completa
+      motor2.step(stepsPerRevolution);
+
+
     }
   }
-}
+}
