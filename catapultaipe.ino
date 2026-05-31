@@ -1,66 +1,97 @@
 #include <Stepper.h>
 #include <SoftwareSerial.h>
 
+const int passosPorVolta = 2048;
+const int pinoLED = 13;
+// Configuração dos Motores (Pinos validados por você)
+// Motor de Desacoplamento: Pinos 12, 10, 11, 9
+Stepper motorDesacoplar(passosPorVolta, 12, 10, 11, 9);
+// Motor de Tração: Pinos 7, 5, 6, 4
+Stepper motorTracao(passosPorVolta, 7, 5, 6, 4);
 
-void rotacaoPorDistancia(float distancia);
+// Configuração do Bluetooth (Pino 2 = RX, Pino 3 = TX)
+SoftwareSerial bluetooth(2, 3);
 
-// Número de passos por volta do motor
-const int stepsPerRevolution = 2048;
+void desligarMotorDesacoplar() {
+  digitalWrite(12, LOW);   digitalWrite(11, LOW);
+  digitalWrite(10, LOW);   digitalWrite(9, LOW);
+}
 
-// Motores
-Stepper motor1(stepsPerRevolution, 8, 10, 9, 11); 
-Stepper motor2(stepsPerRevolution, 4, 6, 5, 7);  
+void desligarMotorTracao() {
+  digitalWrite(7, LOW);    digitalWrite(6, LOW);
+  digitalWrite(5, LOW);    digitalWrite(4, LOW);
+}
 
-// Comunicação com ESP8266
-SoftwareSerial espSerial(2, 3); // RX=2, TX=3
-
-// Controle de energia do ESP8266
-const int espPowerPin = 12;
-
-// Variáveis
-float distancia = 0.00;
-float rot=0.00;
 void setup() {
   Serial.begin(9600);
-  espSerial.begin(9600);
-
-  // velocidade dos motores
-  motor1.setSpeed(10);
-  motor2.setSpeed(10);
-
-  // Liga ESP8266
-  pinMode(espPowerPin, OUTPUT);
-  digitalWrite(espPowerPin, HIGH);
+  bluetooth.begin(9600);
+  
+  motorDesacoplar.setSpeed(6);
+  motorTracao.setSpeed(6);
+  
+  desligarMotorDesacoplar();
+  desligarMotorTracao();
+  pinMode(pinoLED, OUTPUT);
+  Serial.println("--- CATAPULTA PRONTA: 4 BOTÕES ATIVOS ---");
 }
 
 void loop() {
-  if (espSerial.available() > 0) {
-    // Recebe a distância em metros
-    distancia = espSerial.parseFloat();
-
-    Serial.print("Distancia recebida: ");
-    Serial.print(distancia);
-    Serial.println(" metros");
-
-    // Usa a função para aplicar a rotação no motor 1
-    rot=rotacaoPorDistancia(distancia);
-
+  // Verifica se chegaram dados do Bluetooth ou do Monitor Serial
+  digitalWrite(pinoLED, HIGH);
+  if (bluetooth.available() > 0 || Serial.available() > 0) {
     
+    // 1. Lê apenas a primeira letra do comando (A, B, C ou D)
+    char comando = (bluetooth.available() > 0) ? bluetooth.read() : Serial.read();
     
+    // Força a letra a ser maiúscula para facilitar o teste
+    comando = toupper(comando); 
 
-    // Desliga o ESP8266 para economizar energia
-    digitalWrite(espPowerPin, LOW);
-    Serial.println("ESP8266 desligado.");
+    // 2. Se for uma das 4 letras válidas do aplicativo, processa o comando
+    if (comando == 'A' || comando == 'B' || comando == 'C' || comando == 'D') {
+      
+      delay(50); // Pausa essencial de 50ms para dar tempo do celular enviar o número todo
+      
+      // 3. Lê o número de voltas que veio logo após a letra
+      float voltasDigitadas = (bluetooth.available() > 0) ? bluetooth.parseFloat() : Serial.parseFloat();
+      
+      // Se não digitou nada ou deu erro, define o padrão de segurança para 0
+      if (voltasDigitadas < 0) voltasDigitadas = 0; 
+      
+      // 4. Calcula os passos baseados nas voltas
+      long passosCalculados = voltasDigitadas * passosPorVolta;
+      
+      Serial.print("Comando: ");
+      Serial.print(comando);
+      Serial.print(" | Voltas: ");
+      Serial.println(voltasDigitadas);
 
-    // Trava o loop para não religar
-    while (true) { 
-     // Usa a função para aplicar a rotação no motor 1
-     motor1.step(rot);
-
-      // Motor2 faz uma volta completa
-      motor2.step(stepsPerRevolution);
-
-
+      // ==========================================
+      // SEÇÃO DO MOTOR DE TRAÇÃO
+      // ==========================================
+      if (comando == 'A') {
+        Serial.println("-> Executando: Motor Tração [HORÁRIO]");
+        motorTracao.step(passosCalculados); // Passos positivos = Horário
+        desligarMotorTracao();
+      } 
+      else if (comando == 'B') {
+        Serial.println("-> Executando: Motor Tração [ANTI-HORÁRIO]");
+        motorTracao.step(-passosCalculados); // Passos negativos = Inverte o sentido
+        desligarMotorTracao();
+      }
+      
+      // ==========================================
+      // SEÇÃO DO MOTOR DE DESACOPLAMENTO
+      // ==========================================
+      else if (comando == 'C') {
+        Serial.println("-> Executando: Motor Desacoplamento [HORÁRIO]");
+        motorDesacoplar.step(passosCalculados); // Passos positivos = Horário
+        desligarMotorDesacoplar();
+      } 
+      else if (comando == 'D') {
+        Serial.println("-> Executando: Motor Desacoplamento [ANTI-HORÁRIO]");
+        motorDesacoplar.step(-passosCalculados); // Passos negativos = Inverte o sentido
+        desligarMotorDesacoplar();
+      }
     }
   }
 }
