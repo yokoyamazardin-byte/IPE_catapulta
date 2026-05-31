@@ -1,2 +1,3 @@
 # IPE_catapulta 
-o codigo sera atualizado para definir a função do calculo da distância e ajustar o codigo por meio de testes 
+a catapulta recebe por  bluetooth  sinal que indica o numero de voltas e o motor a qual se deve aplicar 
+em seguida executa esta quantied de voltas  no motor correspondente. 
