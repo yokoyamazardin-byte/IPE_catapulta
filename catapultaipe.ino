@@ -11,7 +11,6 @@ Stepper motorTracao(passosPorVolta, 7, 5, 6, 4);
 
 // Configuração do Bluetooth (Pino 2 = RX, Pino 3 = TX)
 SoftwareSerial bluetooth(2, 3);
-
 void desligarMotorDesacoplar() {
   digitalWrite(12, LOW);   digitalWrite(11, LOW);
   digitalWrite(10, LOW);   digitalWrite(9, LOW);
@@ -21,7 +20,10 @@ void desligarMotorTracao() {
   digitalWrite(7, LOW);    digitalWrite(6, LOW);
   digitalWrite(5, LOW);    digitalWrite(4, LOW);
 }
-
+float Calculodevoltas(float DistanciaDigitada) {
+//parte do calculo usando o polinomio 
+  return DistanciaDigitada;
+}
 void setup() {
   Serial.begin(9600);
   bluetooth.begin(9600);
@@ -52,18 +54,18 @@ void loop() {
       delay(50); // Pausa essencial de 50ms para dar tempo do celular enviar o número todo
       
       // 3. Lê o número de voltas que veio logo após a letra
-      float voltasDigitadas = (bluetooth.available() > 0) ? bluetooth.parseFloat() : Serial.parseFloat();
+      float DistanciaDigitada = (bluetooth.available() > 0) ? bluetooth.parseFloat() : Serial.parseFloat();
       
       // Se não digitou nada ou deu erro, define o padrão de segurança para 0
-      if (voltasDigitadas < 0) voltasDigitadas = 0; 
-      
+      if (DistanciaDigitada < 0) DistanciaDigitada = 0; 
+      float voltasCalculadas = Calculodevoltas(DistanciaDigitada);
       // 4. Calcula os passos baseados nas voltas
-      long passosCalculados = voltasDigitadas * passosPorVolta;
+      long passosCalculados = voltasCalculadas * passosPorVolta;
       
       Serial.print("Comando: ");
       Serial.print(comando);
       Serial.print(" | Voltas: ");
-      Serial.println(voltasDigitadas);
+      Serial.println(voltasCalculadas);
 
       // ==========================================
       // SEÇÃO DO MOTOR DE TRAÇÃO
